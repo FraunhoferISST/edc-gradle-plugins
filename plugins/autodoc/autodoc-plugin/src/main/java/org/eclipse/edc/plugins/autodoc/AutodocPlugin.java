@@ -14,11 +14,14 @@
 
 package org.eclipse.edc.plugins.autodoc;
 
+import org.eclipse.edc.plugins.autodoc.merge.JsonReader;
+import org.eclipse.edc.plugins.autodoc.merge.MdWriter;
 import org.eclipse.edc.plugins.autodoc.merge.MergeManifestsTask;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Gradle plugin that injects an {@code annotationProcessor} dependency to any Gradle project so that the autodoc processor can run during compile.
@@ -38,6 +41,16 @@ public class AutodocPlugin implements Plugin<Project> {
         // registers a "named" task, that does nothing, except depend on the compileTask, which then runs the annotation processor
         project.getTasks().register("autodoc", t -> t.dependsOn("compileJava"));
         project.getTasks().register("mergeManifest", MergeManifestsTask.class, t -> t.dependsOn("autodoc"));
+        project.getTasks().register("jsonToMd", MdWriter.class, mdWriter -> {
+            mdWriter.dependsOn("mergeManifest");
+            project.getTasks().getByName("mergeManifest").doLast(task -> {
+                JsonReader jsonReader = new JsonReader(project);
+                List<Map<String, Object>> objects = jsonReader.readJson();
+                mdWriter.setObjects(objects);
+            });
+        });
+
+
 
     }
 
